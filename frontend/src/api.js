@@ -1,34 +1,33 @@
-const API_URL = "http://localhost:8080/comments";
+const BASE_URL = "http://localhost:8080";
  
-function parseHfRaw(comment) {
-  if (!comment.hfRaw) return comment;
-  try {
-    const raw =
-      typeof comment.hfRaw === "string"
-        ? JSON.parse(comment.hfRaw)
-        : comment.hfRaw;
-    const hfParsed = JSON.parse(raw.choices[0].message.content);
-    return { ...comment, ...hfParsed };
-  } catch (e) {
-    console.error("HF parse error:", e);
-    return comment;
-  }
-}
+// ── Comments ──────────────────────────────────────────────
  
 export async function getComments() {
-  const res = await fetch(API_URL);
-  if (!res.ok) throw new Error(`Failed to fetch comments: ${res.status}`);
-  const data = await res.json();
-  return data.map(parseHfRaw);
+  const res = await fetch(`${BASE_URL}/comments`);
+  if (!res.ok) throw new Error(`GET /comments failed: ${res.status}`);
+  return res.json();
 }
  
-export async function createComment(data) {
-  const res = await fetch(API_URL, {
+export async function createComment(text, source) {
+  const res = await fetch(`${BASE_URL}/comments`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: JSON.stringify({ text, source }),
   });
-  if (!res.ok) throw new Error(`Failed to create comment: ${res.status}`);
-  const newComment = await res.json();
-  return parseHfRaw(newComment);
+  if (!res.ok) throw new Error(`POST /comments failed: ${res.status}`);
+  return res.json();
+}
+ 
+// ── Tickets ───────────────────────────────────────────────
+ 
+export async function getTickets() {
+  const res = await fetch(`${BASE_URL}/tickets`);
+  if (!res.ok) throw new Error(`GET /tickets failed: ${res.status}`);
+  return res.json();
+}
+ 
+export async function getTicketById(id) {
+  const res = await fetch(`${BASE_URL}/tickets/${id}`);
+  if (!res.ok) throw new Error(`GET /tickets/${id} failed: ${res.status}`);
+  return res.json();
 }
