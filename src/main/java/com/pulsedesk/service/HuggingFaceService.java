@@ -30,27 +30,35 @@ public class HuggingFaceService {
         this.webClient = builder.build();
     }
 
+    /**
+     * Analyze a user comment using Hugging Face Inference API
+     * Returns a JsonNode with keys: isTicket, title, category, priority, summary
+     */
     public JsonNode analyzeComment(String commentText) {
+        // Build request body in OpenAI chat format
         Map<String, Object> requestBody = Map.of(
-            "model", modelName,
-            "messages", List.of(
-                Map.of("role", "user", "content", buildPrompt(commentText))
-            ),
-            "max_tokens", 300,
-            "temperature", 0.2
+                "model", modelName,
+                "messages", List.of(
+                        Map.of("role", "user", "content", buildPrompt(commentText))
+                ),
+                "max_tokens", 300,
+                "temperature", 0.2
         );
 
         try {
+            // Call Hugging Face API
             String rawResponse = webClient.post()
-                .uri(modelUrl)
-                .header("Authorization", "Bearer " + apiToken)
-                .header("Content-Type", "application/json")
-                .bodyValue(requestBody)
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
+                    .uri(modelUrl)
+                    .header("Authorization", "Bearer " + apiToken)
+                    .header("Content-Type", "application/json")
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
 
             System.out.println("HF RAW RESPONSE: " + rawResponse);
+
+            // Extract JSON object from HF response
             return extractJson(rawResponse);
 
         } catch (Exception e) {
@@ -59,32 +67,48 @@ public class HuggingFaceService {
         }
     }
 
+    /**
+     * Build the prompt to send to the model
+     */
     private String buildPrompt(String commentText) {
         return """
-            You are a support ticket classifier. Analyze the user comment below and respond ONLY with a valid JSON object. No explanation, no extra text, no markdown.
+                You are a support ticket classifier. Analyze the user comment below and respond ONLY with a valid JSON object. No explanation, no extra text, no markdown.
 
-            Comment: "%s"
+                Comment: "%s"
 
-            Rules:
-            - If the comment is a compliment or general feedback with no issue, set isTicket to false and leave other fields empty strings.
-            - If it describes a bug, problem, request, or complaint, set isTicket to true and fill all fields.
+                Rules:
+                - If the comment is a compliment or general feedback with no issue, set isTicket to false and leave other fields empty strings.
+                - If it describes a bug, problem, request, or complaint, set isTicket to true and fill all fields.
 
-            Respond with exactly this JSON structure:
-            {
-              "isTicket": true or false,
-              "title": "short title here",
-              "category": "bug or feature or billing or account or other",
-              "priority": "low or medium or high",
-              "summary": "one sentence summary"
-            }
-            """.formatted(commentText);
+                Respond with exactly this JSON structure:
+                {
+                  "isTicket": true or false,
+                  "title": "short title here",
+                  "category": "bug or feature or billing or account or other",
+                  "priority": "low or medium or high",
+                  "summary": "one sentence summary"
+                }
+                """.formatted(commentText);
     }
 
+    /**
+     * Extract JSON object from the raw Hugging Face response
+     */
     private JsonNode extractJson(String rawResponse) throws Exception {
-        // New API returns OpenAI-compatible format
-        JsonNode root = objectMapper.readTree(rawResponse);
-        String content = root.path("choices").get(0).path("message").path("content").asText();
+        if (rawResponse == null || rawResponse.isBlank()) {
+            throw new RuntimeException("Empty response from Hugging Face API");
+        }
 
+        // HF returns OpenAI-like format
+        JsonNode root = objectMapper.readTree(rawResponse);
+        JsonNode choices = root.path("choices");
+        if (!choices.isArray() || choices.isEmpty()) {
+            throw new RuntimeException("No choices found in HF response");
+        }
+
+        String content = choices.get(0).path("message").path("content").asText();
+
+        // Extract JSON from string
         Pattern pattern = Pattern.compile("\\{[\\s\\S]*\\}");
         Matcher matcher = pattern.matcher(content);
 
@@ -92,6 +116,6 @@ public class HuggingFaceService {
             return objectMapper.readTree(matcher.group());
         }
 
-        throw new RuntimeException("No JSON found in response: " + content);
+        throw new RuntimeException("No valid JSON found in response: " + content);
     }
 }
