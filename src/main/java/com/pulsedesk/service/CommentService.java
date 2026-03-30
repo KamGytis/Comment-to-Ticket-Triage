@@ -38,22 +38,21 @@ public class CommentService {
 
                 Ticket ticket = new Ticket();
                 ticket.setTitle(analysis.path("title").asText("No title"));
-                ticket.setCategory(analysis.path("category").asText("General"));
-                ticket.setPriority(analysis.path("priority").asText("Low"));
+                ticket.setCategory(analysis.path("category").asText("other"));
+                ticket.setPriority(analysis.path("priority").asText("medium"));
                 ticket.setSummary(analysis.path("summary").asText("No summary"));
                 ticket.setCommentId(comment.getId());
                 ticket.setCreatedAt(LocalDateTime.now());
 
                 ticketRepository.save(ticket);
 
-             
+                // FIX: must save comment again so convertedToTicket=true persists in DB
                 comment.setConvertedToTicket(true);
+                comment = commentRepository.save(comment);
             }
 
         } catch (Exception e) {
-           
             System.err.println("Error analyzing comment: " + e.getMessage());
-
         }
 
         return comment;
