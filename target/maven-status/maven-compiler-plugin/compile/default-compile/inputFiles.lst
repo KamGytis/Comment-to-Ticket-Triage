@@ -1,0 +1,11 @@
+C:\Users\GYTIS\Documents\GitHub\Comment-to-Ticket-Triage\src\main\java\com\pulsedesk\controller\CommentController.java
+C:\Users\GYTIS\Documents\GitHub\Comment-to-Ticket-Triage\src\main\java\com\pulsedesk\controller\TicketController.java
+C:\Users\GYTIS\Documents\GitHub\Comment-to-Ticket-Triage\src\main\java\com\pulsedesk\dto\CommentRequest.java
+C:\Users\GYTIS\Documents\GitHub\Comment-to-Ticket-Triage\src\main\java\com\pulsedesk\model\Comment.java
+C:\Users\GYTIS\Documents\GitHub\Comment-to-Ticket-Triage\src\main\java\com\pulsedesk\model\Ticket.java
+C:\Users\GYTIS\Documents\GitHub\Comment-to-Ticket-Triage\src\main\java\com\pulsedesk\PulseDeskApplication.java
+C:\Users\GYTIS\Documents\GitHub\Comment-to-Ticket-Triage\src\main\java\com\pulsedesk\repository\CommentRepository.java
+C:\Users\GYTIS\Documents\GitHub\Comment-to-Ticket-Triage\src\main\java\com\pulsedesk\repository\TicketRepository.java
+C:\Users\GYTIS\Documents\GitHub\Comment-to-Ticket-Triage\src\main\java\com\pulsedesk\service\CommentService.java
+C:\Users\GYTIS\Documents\GitHub\Comment-to-Ticket-Triage\src\main\java\com\pulsedesk\service\HuggingFaceService.java
+C:\Users\GYTIS\Documents\GitHub\Comment-to-Ticket-Triage\src\main\java\com\pulsedesk\service\TicketService.java
