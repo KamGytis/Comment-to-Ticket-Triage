@@ -5,9 +5,20 @@ COPY package.json package-lock.json ./
 RUN npm install
 COPY . .
 RUN npm run build
-
+ 
 # Stage 2: Serve with nginx
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+ 
+# Inline nginx config — no separate file needed
+RUN printf 'server {\n\
+    listen 80;\n\
+    location / {\n\
+        root /usr/share/nginx/html;\n\
+        index index.html;\n\
+        try_files $uri $uri/ /index.html;\n\
+    }\n\
+}\n' > /etc/nginx/conf.d/default.conf
+ 
 EXPOSE 80
+ 
