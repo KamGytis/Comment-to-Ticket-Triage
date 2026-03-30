@@ -1,18 +1,17 @@
 package com.pulsedesk.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
-
 public class HuggingFaceService {
 
     private final WebClient webClient;
@@ -24,22 +23,24 @@ public class HuggingFaceService {
     @Value("${huggingface.model.url}")
     private String modelUrl;
 
+    @Value("${huggingface.model.name}")
+    private String modelName;
+
     public HuggingFaceService(WebClient.Builder builder) {
         this.webClient = builder.build();
     }
 
     public JsonNode analyzeComment(String commentText) {
-        String prompt = buildPrompt(commentText);
-
-        Map<String , Object> requestBody = Map.of(
-            "inputs", prompt,
-            "parameters", Map.of(
-                "max_new_tokens", 300,
-                "temperature", 0.2,
-                "return_full_text", false
-            )
+        Map<String, Object> requestBody = Map.of(
+            "model", modelName,
+            "messages", List.of(
+                Map.of("role", "user", "content", buildPrompt(commentText))
+            ),
+            "max_tokens", 300,
+            "temperature", 0.2
         );
-        try{
+
+        try {
             String rawResponse = webClient.post()
                 .uri(modelUrl)
                 .header("Authorization", "Bearer " + apiToken)
@@ -49,21 +50,23 @@ public class HuggingFaceService {
                 .bodyToMono(String.class)
                 .block();
 
+            System.out.println("HF RAW RESPONSE: " + rawResponse);
             return extractJson(rawResponse);
-        }
-        catch (Exception e) {
+
+        } catch (Exception e) {
             System.err.println("Error calling Hugging Face API: " + e.getMessage());
             return null;
         }
     }
+
     private String buildPrompt(String commentText) {
         return """
-            <s>[INST] You are a support ticket classifier. Analyze the user comment below and respond ONLY with a valid JSON object. No explanation, no extra text.
+            You are a support ticket classifier. Analyze the user comment below and respond ONLY with a valid JSON object. No explanation, no extra text, no markdown.
 
             Comment: "%s"
 
             Rules:
-            - If the comment is a compliment or general feedback with no issue, set isTicket to false and leave other fields empty.
+            - If the comment is a compliment or general feedback with no issue, set isTicket to false and leave other fields empty strings.
             - If it describes a bug, problem, request, or complaint, set isTicket to true and fill all fields.
 
             Respond with exactly this JSON structure:
@@ -74,21 +77,21 @@ public class HuggingFaceService {
               "priority": "low or medium or high",
               "summary": "one sentence summary"
             }
-            [/INST]
             """.formatted(commentText);
     }
+
     private JsonNode extractJson(String rawResponse) throws Exception {
-        JsonNode responseArray = objectMapper.readTree(rawResponse);
-        String generatedText = responseArray.get(0).get("generated_text").asText();
+        // New API returns OpenAI-compatible format
+        JsonNode root = objectMapper.readTree(rawResponse);
+        String content = root.path("choices").get(0).path("message").path("content").asText();
 
         Pattern pattern = Pattern.compile("\\{[\\s\\S]*\\}");
-        Matcher matcher = pattern.matcher(generatedText);
+        Matcher matcher = pattern.matcher(content);
 
         if (matcher.find()) {
-            String jsonString = matcher.group();
-            return objectMapper.readTree(jsonString);
-        } else {
-            throw new RuntimeException("No JSON found in model response: " + generatedText);
+            return objectMapper.readTree(matcher.group());
         }
+
+        throw new RuntimeException("No JSON found in response: " + content);
     }
 }
