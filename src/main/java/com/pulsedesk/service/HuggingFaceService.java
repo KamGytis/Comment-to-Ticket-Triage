@@ -45,6 +45,7 @@ public class HuggingFaceService {
                 .uri(modelUrl)
                 .header("Authorization", "Bearer " + apiToken)
                 .header("Content-Type", "application/json")
+                .header("x-wait-for-model", "true")
                 .bodyValue(requestBody)
                 .retrieve()
                 .bodyToMono(String.class)
@@ -81,7 +82,6 @@ public class HuggingFaceService {
     }
 
     private JsonNode extractJson(String rawResponse) throws Exception {
-        // New API returns OpenAI-compatible format
         JsonNode root = objectMapper.readTree(rawResponse);
         String content = root.path("choices").get(0).path("message").path("content").asText();
 
