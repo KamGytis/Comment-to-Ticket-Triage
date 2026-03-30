@@ -1,54 +1,30 @@
-import { useState } from "react";
-import { createComment } from "../api";
-
-export default function CommentForm({ onNewComment }) {
-  const [text, setText] = useState("");
-  const [source, setSource] = useState("web");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!text.trim()) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Send to backend — backend calls HF and returns enriched comment
-      const newComment = await createComment({ text, source });
-      setText("");
-      onNewComment(newComment);
-    } catch (err) {
-      console.error("Failed to submit comment:", err);
-      setError("Failed to submit comment. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+export default function CommentList({ comments }) {
+  if (comments.length === 0) {
+    return (
+      <div>
+        <h2>Comments</h2>
+        <p style={{ color: "#999" }}>No comments yet.</p>
+      </div>
+    );
+  }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h2>Add Comment</h2>
-      <input
-        type="text"
-        placeholder="Write comment..."
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        disabled={loading}
-      />
-      <select
-        value={source}
-        onChange={(e) => setSource(e.target.value)}
-        disabled={loading}
-      >
-        <option value="web">Web</option>
-        <option value="email">Email</option>
-      </select>
-      <button type="submit" disabled={loading}>
-        {loading ? "Analyzing..." : "Submit"}
-      </button>
-      {error && <p style={{ color: "red" }}>{error}</p>}
-    </form>
+    <div>
+      <h2>Comments</h2>
+      {comments.map((c) => (
+        <div key={c.id} className="comment">
+          <h3>{c.text}</h3>
+          <p>Source: <strong>{c.source}</strong></p>
+          <p>
+            Status:{" "}
+            {c.convertedToTicket ? (
+              <span style={{ color: "#e67e22" }}>🎫 Ticket created</span>
+            ) : (
+              <span style={{ color: "#27ae60" }}>💬 Comment only</span>
+            )}
+          </p>
+        </div>
+      ))}
+    </div>
   );
 }
