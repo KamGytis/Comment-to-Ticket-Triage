@@ -88,6 +88,63 @@ npm run dev
 
 5. Open http://localhost:5173 in your browser
 
+## Running with Docker
+
+### Prerequisites
+- Docker Desktop installed and running
+
+### Steps
+
+1. Clone the repository:
+```bash
+git clone https://github.com/KamGytis/Comment-to-Ticket-Triage.git
+cd Comment-to-Ticket-Triage
+```
+
+2. Build and run the backend:
+```bash
+docker build -t pulsedesk-backend .
+docker run -p 8080:8080 -e HF_TOKEN=hf_your_token_here pulsedesk-backend
+```
+
+3. Build and run the frontend:
+```bash
+docker build -f Dockerfile.frontend -t pulsedesk-frontend .
+docker run -p 80:80 -e VITE_API_URL=http://localhost:8080 pulsedesk-frontend
+```
+
+4. Open http://localhost in your browser
+
+### Running both with Docker Compose
+
+Create a `docker-compose.yml` in the root (if not already present):
+```yaml
+version: '3.8'
+services:
+  backend:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - HF_TOKEN=hf_your_token_here
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        - VITE_API_URL=http://localhost:8080
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+```
+
+Then run:
+```bash
+docker-compose up --build
+```
+
 ## Notes on AI Model
 
 The originally suggested models (`mistralai/Mistral-7B-Instruct`, `google/flan-t5-base`)
