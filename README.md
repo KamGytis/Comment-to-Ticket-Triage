@@ -88,6 +88,15 @@ npm run dev
 
 5. Open http://localhost:5173 in your browser
 
+## Screenshots
+
+### Comments View
+![Comments View](assets/comments-view.png)
+
+### Tickets View
+![Tickets View](assets/tickets-view.png)
+
+
 ## Deployed on Railway
 
 Both services are deployed separately on Railway.
