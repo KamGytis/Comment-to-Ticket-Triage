@@ -1,3 +1,8 @@
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  return new Date(dateStr).toLocaleString();
+}
+
 const PRIORITY_COLORS = {
   high: "#e74c3c",
   medium: "#e67e22",
@@ -38,7 +43,9 @@ export default function TicketList({ tickets }) {
             </span>
           </p>
           <p><strong>Summary:</strong> {t.summary}</p>
-          <p style={{ color: "#999", fontSize: 12 }}>From comment ID: {t.commentId}</p>
+          <p style={{ color: "#999", fontSize: 12 }}>
+            From comment ID: {t.commentId} &nbsp;·&nbsp; {formatDate(t.createdAt)}
+          </p>
         </div>
       ))}
     </div>
