@@ -1,3 +1,8 @@
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  return new Date(dateStr).toLocaleString();
+}
+
 export default function CommentList({ comments }) {
   if (comments.length === 0) {
     return (
@@ -23,6 +28,7 @@ export default function CommentList({ comments }) {
               <span style={{ color: "#27ae60" }}>💬 Comment only</span>
             )}
           </p>
+          <p style={{ color: "#999", fontSize: 12 }}>{formatDate(c.createdAt)}</p>
         </div>
       ))}
     </div>

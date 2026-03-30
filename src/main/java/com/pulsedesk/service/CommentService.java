@@ -23,6 +23,10 @@ public class CommentService {
     @Transactional
     public Comment submitComment(String text, String source) {
 
+        if (text == null || text.isBlank()) {
+            throw new IllegalArgumentException("Comment text must not be empty");
+        }
+
         Comment comment = new Comment();
         comment.setText(text);
         comment.setSource(source);
@@ -36,21 +40,24 @@ public class CommentService {
 
             if (analysis != null && analysis.path("isTicket").asBoolean(false)) {
 
+                String summary = analysis.path("summary").asText("No summary");
+
                 Ticket ticket = new Ticket();
                 ticket.setTitle(analysis.path("title").asText("No title"));
                 ticket.setCategory(analysis.path("category").asText("other"));
                 ticket.setPriority(analysis.path("priority").asText("medium"));
-                ticket.setSummary(analysis.path("summary").asText("No summary"));
+                ticket.setSummary(summary);
                 ticket.setCommentId(comment.getId());
                 ticket.setCreatedAt(LocalDateTime.now());
 
                 ticketRepository.save(ticket);
 
-                // FIX: must save comment again so convertedToTicket=true persists in DB
                 comment.setConvertedToTicket(true);
                 comment = commentRepository.save(comment);
             }
 
+        } catch (IllegalArgumentException e) {
+            throw e;
         } catch (Exception e) {
             System.err.println("Error analyzing comment: " + e.getMessage());
         }

@@ -1,11 +1,11 @@
+com\pulsedesk\model\Ticket.class
+com\pulsedesk\dto\CommentRequest.class
+com\pulsedesk\controller\TicketController.class
+com\pulsedesk\repository\TicketRepository.class
 com\pulsedesk\controller\CommentController.class
 com\pulsedesk\service\HuggingFaceService.class
 com\pulsedesk\model\Comment.class
-com\pulsedesk\model\Ticket.class
 com\pulsedesk\repository\CommentRepository.class
 com\pulsedesk\PulseDeskApplication.class
-com\pulsedesk\dto\CommentRequest.class
 com\pulsedesk\service\CommentService.class
 com\pulsedesk\service\TicketService.class
-com\pulsedesk\controller\TicketController.class
-com\pulsedesk\repository\TicketRepository.class
