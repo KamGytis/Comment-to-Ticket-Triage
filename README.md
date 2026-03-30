@@ -88,62 +88,39 @@ npm run dev
 
 5. Open http://localhost:5173 in your browser
 
-## Running with Docker
+## Deployed on Railway
 
-### Prerequisites
-- Docker Desktop installed and running
+Both services are deployed separately on Railway.
 
-### Steps
+### Backend Deployment
 
-1. Clone the repository:
-```bash
-git clone https://github.com/KamGytis/Comment-to-Ticket-Triage.git
-cd Comment-to-Ticket-Triage
-```
+1. Go to [railway.app](https://railway.app) and create a new project
+2. Click **"Deploy from GitHub repo"** and select your repository
+3. Set the following environment variables in the **Variables** tab:
+   - `HF_TOKEN` = your Hugging Face API token
+   - `PORT` = `8080`
+4. Go to **Settings → Networking** and set the port to `8080`
+5. Railway will automatically build and deploy using the `Dockerfile`
 
-2. Build and run the backend:
-```bash
-docker build -t pulsedesk-backend .
-docker run -p 8080:8080 -e HF_TOKEN=hf_your_token_here pulsedesk-backend
-```
+### Frontend Deployment
 
-3. Build and run the frontend:
-```bash
-docker build -f Dockerfile.frontend -t pulsedesk-frontend .
-docker run -p 80:80 -e VITE_API_URL=http://localhost:8080 pulsedesk-frontend
-```
+1. In the same Railway project, click **"New Service" → "GitHub Repo"**
+2. Select the same repository
+3. Go to **Settings → Build** and set **Dockerfile Path** to `/Dockerfile.frontend`
+4. Set the following environment variables in the **Variables** tab:
+   - `VITE_API_URL` = your backend Railway URL (e.g. `https://your-backend.up.railway.app`)
+   - `PORT` = `80`
+5. Go to **Settings → Networking** and set the port to `80`
+6. Railway will build and deploy the frontend
 
-4. Open http://localhost in your browser
+### Environment Variables Summary
 
-### Running both with Docker Compose
-
-Create a `docker-compose.yml` in the root (if not already present):
-```yaml
-version: '3.8'
-services:
-  backend:
-    build: .
-    ports:
-      - "8080:8080"
-    environment:
-      - HF_TOKEN=hf_your_token_here
-
-  frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile.frontend
-      args:
-        - VITE_API_URL=http://localhost:8080
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-```
-
-Then run:
-```bash
-docker-compose up --build
-```
+| Service | Variable | Value |
+|---------|----------|-------|
+| Backend | `HF_TOKEN` | Your Hugging Face token |
+| Backend | `PORT` | `8080` |
+| Frontend | `VITE_API_URL` | Your backend Railway URL |
+| Frontend | `PORT` | `80` |
 
 ## Notes on AI Model
 
