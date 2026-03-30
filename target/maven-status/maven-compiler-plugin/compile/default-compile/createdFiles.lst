@@ -1,0 +1,7 @@
+com\pulsedesk\service\HuggingFaceService.class
+com\pulsedesk\model\Comment.class
+com\pulsedesk\model\Ticket.class
+com\pulsedesk\repository\CommentRepository.class
+com\pulsedesk\PulseDeskApplication.class
+com\pulsedesk\dto\CommentRequest.class
+com\pulsedesk\repository\TicketRepository.class
