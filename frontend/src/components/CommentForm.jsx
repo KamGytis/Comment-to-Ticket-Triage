@@ -1,43 +1,30 @@
 import { useState } from "react";
-
-// Mock HF call function
-async function analyzeCommentHF(text) {
-  // Replace this with your real Hugging Face endpoint
-  const res = await fetch("YOUR_HF_API_ENDPOINT", {
-    method: "POST",
-    headers: {
-      "Authorization": "Bearer YOUR_HF_KEY",
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ inputs: text })
-  });
-
-  const data = await res.json();
-  
-  // HF response is inside choices[0].message.content
-  return JSON.parse(data.choices[0].message.content);
-}
+import { createComment } from "../api";
 
 export default function CommentForm({ onNewComment }) {
   const [text, setText] = useState("");
   const [source, setSource] = useState("web");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!text) return;
+    if (!text.trim()) return;
 
-    // Analyze comment with HF
-    const hfResult = await analyzeCommentHF(text);
+    setLoading(true);
+    setError(null);
 
-    const newComment = {
-      id: Date.now(),
-      text,
-      source,
-      ...hfResult
-    };
-
-    setText("");
-    onNewComment(newComment);
+    try {
+      // Send to backend — backend calls HF and returns enriched comment
+      const newComment = await createComment({ text, source });
+      setText("");
+      onNewComment(newComment);
+    } catch (err) {
+      console.error("Failed to submit comment:", err);
+      setError("Failed to submit comment. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -47,13 +34,21 @@ export default function CommentForm({ onNewComment }) {
         type="text"
         placeholder="Write comment..."
         value={text}
-        onChange={e => setText(e.target.value)}
+        onChange={(e) => setText(e.target.value)}
+        disabled={loading}
       />
-      <select value={source} onChange={e => setSource(e.target.value)}>
+      <select
+        value={source}
+        onChange={(e) => setSource(e.target.value)}
+        disabled={loading}
+      >
         <option value="web">Web</option>
         <option value="email">Email</option>
       </select>
-      <button type="submit">Submit</button>
+      <button type="submit" disabled={loading}>
+        {loading ? "Analyzing..." : "Submit"}
+      </button>
+      {error && <p style={{ color: "red" }}>{error}</p>}
     </form>
   );
 }

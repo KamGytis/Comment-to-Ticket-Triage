@@ -1,24 +1,54 @@
-export default function CommentList({ comments }) {
-  return (
-    <div>
-      <h2>Comments</h2>
-      {comments.map(c => (
-        <div key={c.id} style={{ border: "1px solid #ccc", margin: "10px", padding: "10px" }}>
-          <p><strong>{c.text}</strong></p>
-          <p>Source: {c.source}</p>
+import { useState } from "react";
+import { createComment } from "../api";
 
-          {c.isTicket ? (
-            <>
-              <p>Category: {c.category}</p>
-              <p>Priority: {c.priority}</p>
-              <p>Summary: {c.summary}</p>
-              <p>Status: Ticket created</p>
-            </>
-          ) : (
-            <p>Status: Only a comment</p>
-          )}
-        </div>
-      ))}
-    </div>
+export default function CommentForm({ onNewComment }) {
+  const [text, setText] = useState("");
+  const [source, setSource] = useState("web");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!text.trim()) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Send to backend — backend calls HF and returns enriched comment
+      const newComment = await createComment({ text, source });
+      setText("");
+      onNewComment(newComment);
+    } catch (err) {
+      console.error("Failed to submit comment:", err);
+      setError("Failed to submit comment. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <h2>Add Comment</h2>
+      <input
+        type="text"
+        placeholder="Write comment..."
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        disabled={loading}
+      />
+      <select
+        value={source}
+        onChange={(e) => setSource(e.target.value)}
+        disabled={loading}
+      >
+        <option value="web">Web</option>
+        <option value="email">Email</option>
+      </select>
+      <button type="submit" disabled={loading}>
+        {loading ? "Analyzing..." : "Submit"}
+      </button>
+      {error && <p style={{ color: "red" }}>{error}</p>}
+    </form>
   );
 }
