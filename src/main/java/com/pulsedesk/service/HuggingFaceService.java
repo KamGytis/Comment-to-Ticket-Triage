@@ -32,8 +32,7 @@ public class HuggingFaceService {
         this.webClient = builder.build();
     }
 
-    public JsonNode analyzeComment(String commentText) {
-        // Ruošiame užklausą OpenAI/Chat formatu
+    public Mono<JsonNode> analyzeComment(String commentText) {
         Map<String, Object> requestBody = Map.of(
             "model", modelName,
             "messages", List.of(
@@ -43,33 +42,43 @@ public class HuggingFaceService {
             "temperature", 0.2
         );
 
+        return webClient.post()
+            .uri(modelUrl)
+            .header("Authorization", "Bearer " + apiToken)
+            .header("Content-Type", "application/json")
+            .header("x-wait-for-model", "true")
+            .bodyValue(requestBody)
+            .retrieve()
+            .bodyToMono(String.class)
+            .map(this::safeExtractJson)
+            .onErrorReturn(getFallbackJson());
+    }
+
+    private JsonNode safeExtractJson(String rawResponse) {
         try {
-            String rawResponse = webClient.post()
-                .uri(modelUrl)
-                .header("Authorization", "Bearer " + apiToken)
-                .header("Content-Type", "application/json")
-                .header("x-wait-for-model", "true")
-                .bodyValue(requestBody)
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
+            JsonNode root = objectMapper.readTree(rawResponse);
+            String content = root.path("choices").get(0).path("message").path("content").asText();
 
-            System.out.println("HF RAW RESPONSE: " + rawResponse);
-            return extractJson(rawResponse);
+            Pattern pattern = Pattern.compile("\\{[\\s\\S]*\\}");
+            Matcher matcher = pattern.matcher(content);
 
+            if (matcher.find()) {
+                return objectMapper.readTree(matcher.group());
+            }
         } catch (Exception e) {
-            System.err.println("Error calling Hugging Face API: " + e.getMessage());
-            
-            // FALLBACK LOGIKA: Jei API neveikia, sukuriamas rankinis JSON, kad programa nesustotų
-            ObjectNode fallbackJson = objectMapper.createObjectNode();
-            fallbackJson.put("isTicket", true);
-            fallbackJson.put("title", "AI Fallback: Issue Analysis");
-            fallbackJson.put("category", "OTHER");
-            fallbackJson.put("priority", "MEDIUM");
-            fallbackJson.put("summary", "Automated fallback due to API connectivity issues.");
-            
-            return fallbackJson;
+            System.err.println("Parsing error: " + e.getMessage());
         }
+        return getFallbackJson();
+    }
+
+    private JsonNode getFallbackJson() {
+        ObjectNode fallbackJson = objectMapper.createObjectNode();
+        fallbackJson.put("isTicket", true);
+        fallbackJson.put("title", "AI Fallback: Issue Analysis");
+        fallbackJson.put("category", "OTHER");
+        fallbackJson.put("priority", "MEDIUM");
+        fallbackJson.put("summary", "Automated fallback due to API connectivity issues.");
+        return fallbackJson;
     }
 
     private String buildPrompt(String commentText) {
@@ -91,20 +100,5 @@ public class HuggingFaceService {
               "summary": "one sentence summary"
             }
             """.formatted(commentText);
-    }
-
-    private JsonNode extractJson(String rawResponse) throws Exception {
-        JsonNode root = objectMapper.readTree(rawResponse);
-        
-        String content = root.path("choices").get(0).path("message").path("content").asText();
-
-        Pattern pattern = Pattern.compile("\\{[\\s\\S]*\\}");
-        Matcher matcher = pattern.matcher(content);
-
-        if (matcher.find()) {
-            return objectMapper.readTree(matcher.group());
-        }
-
-        throw new RuntimeException("No JSON found in response content");
     }
 }

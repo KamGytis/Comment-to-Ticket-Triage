@@ -6,6 +6,7 @@ import com.pulsedesk.service.CommentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono; // THIS WAS MISSING
 
 import java.util.List;
 
@@ -17,14 +18,13 @@ public class CommentController {
     private final CommentService commentService;
 
     @PostMapping
-    public ResponseEntity<Comment> submitComment(@RequestBody CommentRequest request) {
-        Comment comment = commentService.submitComment(request.getText(), request.getSource());
-        return ResponseEntity.ok(comment);
+    public Mono<ResponseEntity<Comment>> submitComment(@RequestBody CommentRequest request) {
+        return commentService.submitComment(request.getText(), request.getSource())
+                .map(ResponseEntity::ok);
     }
 
     @GetMapping
     public ResponseEntity<List<Comment>> getAllComments() {
         return ResponseEntity.ok(commentService.getAllComments());
     }
-    
 }

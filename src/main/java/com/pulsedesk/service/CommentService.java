@@ -6,6 +6,8 @@ import com.pulsedesk.model.Ticket;
 import com.pulsedesk.repository.CommentRepository;
 import com.pulsedesk.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Mono;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,48 +23,47 @@ public class CommentService {
     private final HuggingFaceService huggingFaceService;
 
     @Transactional
-    public Comment submitComment(String text, String source) {
+    public Mono<Comment> submitComment(String text, String source) {
 
+        // 1. Validation
         if (text == null || text.isBlank()) {
-            throw new IllegalArgumentException("Comment text must not be empty");
+            return Mono.error(new IllegalArgumentException("Comment text must not be empty"));
         }
 
+        // 2. Initial Comment Setup
         Comment comment = new Comment();
         comment.setText(text);
         comment.setSource(source);
         comment.setCreatedAt(LocalDateTime.now());
         comment.setConvertedToTicket(false);
 
-        comment = commentRepository.save(comment);
+        // 3. Save to DB (Blocking call before the reactive chain)
+        Comment savedComment = commentRepository.save(comment);
 
-        try {
-            JsonNode analysis = huggingFaceService.analyzeComment(text);
+        // 4. Start the Reactive Chain
+        return huggingFaceService.analyzeComment(text)
+            .flatMap(analysis -> {
+                // If AI decides this should be a ticket
+                if (analysis != null && analysis.path("isTicket").asBoolean(false)) {
 
-            if (analysis != null && analysis.path("isTicket").asBoolean(false)) {
+                    Ticket ticket = new Ticket();
+                    ticket.setTitle(analysis.path("title").asText("No title"));
+                    ticket.setCategory(analysis.path("category").asText("other").toUpperCase());
+                    ticket.setPriority(analysis.path("priority").asText("medium").toUpperCase());
+                    ticket.setSummary(analysis.path("summary").asText("No summary"));
+                    ticket.setCommentId(savedComment.getId());
+                    ticket.setCreatedAt(LocalDateTime.now());
 
-                String summary = analysis.path("summary").asText("No summary");
+                    ticketRepository.save(ticket);
 
-                Ticket ticket = new Ticket();
-                ticket.setTitle(analysis.path("title").asText("No title"));
-                ticket.setCategory(analysis.path("category").asText("other"));
-                ticket.setPriority(analysis.path("priority").asText("medium"));
-                ticket.setSummary(summary);
-                ticket.setCommentId(comment.getId());
-                ticket.setCreatedAt(LocalDateTime.now());
-
-                ticketRepository.save(ticket);
-
-                comment.setConvertedToTicket(true);
-                comment = commentRepository.save(comment);
-            }
-
-        } catch (IllegalArgumentException e) {
-            throw e;
-        } catch (Exception e) {
-            System.err.println("Error analyzing comment: " + e.getMessage());
-        }
-
-        return comment;
+                    savedComment.setConvertedToTicket(true);
+                    return Mono.just(commentRepository.save(savedComment));
+                }
+                // If not a ticket, just return the saved comment
+                return Mono.just(savedComment);
+            })
+            .doOnError(e -> System.err.println("Critical error in triage flow: " + e.getMessage()))
+            .onErrorReturn(savedComment); // Fallback: always return the comment
     }
 
     public List<Comment> getAllComments() {
