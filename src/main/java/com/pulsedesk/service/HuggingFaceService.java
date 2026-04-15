@@ -55,9 +55,15 @@ public class HuggingFaceService {
             return extractJson(rawResponse);
 
         } catch (Exception e) {
-            System.err.println("Error calling Hugging Face API: " + e.getMessage());
-            return new ChatCompletionResponse("{\"isTicket\": true, \"priority\": \"HIGH\", \"category\": \"BUG\", \"suggestedTitle\": \"Issue detected\", \"reasoning\": \"Fallback mode activated\"}");
-        }
+    System.err.println("Error calling Hugging Face API: " + e.getMessage());
+    com.fasterxml.jackson.databind.node.ObjectNode fallbackJson = objectMapper.createObjectNode();
+    fallbackJson.put("isTicket", true);
+    fallbackJson.put("title", "AI Fallback: " + commentText);
+    fallbackJson.put("category", "BUG");
+    fallbackJson.put("priority", "HIGH");
+    fallbackJson.put("summary", "Fallback activated due to: " + e.getMessage());
+    
+    return fallbackJson;
     }
 
     private String buildPrompt(String commentText) {
