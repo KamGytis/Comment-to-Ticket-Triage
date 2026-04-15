@@ -2,9 +2,11 @@ package com.pulsedesk.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
@@ -31,6 +33,7 @@ public class HuggingFaceService {
     }
 
     public JsonNode analyzeComment(String commentText) {
+        // Ruošiame užklausą OpenAI/Chat formatu
         Map<String, Object> requestBody = Map.of(
             "model", modelName,
             "messages", List.of(
@@ -55,15 +58,18 @@ public class HuggingFaceService {
             return extractJson(rawResponse);
 
         } catch (Exception e) {
-    System.err.println("Error calling Hugging Face API: " + e.getMessage());
-    com.fasterxml.jackson.databind.node.ObjectNode fallbackJson = objectMapper.createObjectNode();
-    fallbackJson.put("isTicket", true);
-    fallbackJson.put("title", "AI Fallback: " + commentText);
-    fallbackJson.put("category", "BUG");
-    fallbackJson.put("priority", "HIGH");
-    fallbackJson.put("summary", "Fallback activated due to: " + e.getMessage());
-    
-    return fallbackJson;
+            System.err.println("Error calling Hugging Face API: " + e.getMessage());
+            
+            // FALLBACK LOGIKA: Jei API neveikia, sukuriamas rankinis JSON, kad programa nesustotų
+            ObjectNode fallbackJson = objectMapper.createObjectNode();
+            fallbackJson.put("isTicket", true);
+            fallbackJson.put("title", "AI Fallback: Issue Analysis");
+            fallbackJson.put("category", "OTHER");
+            fallbackJson.put("priority", "MEDIUM");
+            fallbackJson.put("summary", "Automated fallback due to API connectivity issues.");
+            
+            return fallbackJson;
+        }
     }
 
     private String buildPrompt(String commentText) {
@@ -73,14 +79,14 @@ public class HuggingFaceService {
             Comment: "%s"
 
             Rules:
-            - If the comment is a compliment or general feedback with no issue, set isTicket to false and leave other fields empty strings.
-            - If it describes a bug, problem, request, or complaint, set isTicket to true and fill all fields.
+            - If the comment is a compliment or general feedback with no issue, set isTicket to false.
+            - If it describes a bug, problem, request, or complaint, set isTicket to true.
 
             Respond with exactly this JSON structure:
             {
-              "isTicket": true or false,
-              "title": "short title here",
-              "category": "bug or feature or billing or account or other",
+              "isTicket": true,
+              "title": "short title",
+              "category": "bug or feature or billing or other",
               "priority": "low or medium or high",
               "summary": "one sentence summary"
             }
@@ -89,6 +95,7 @@ public class HuggingFaceService {
 
     private JsonNode extractJson(String rawResponse) throws Exception {
         JsonNode root = objectMapper.readTree(rawResponse);
+        
         String content = root.path("choices").get(0).path("message").path("content").asText();
 
         Pattern pattern = Pattern.compile("\\{[\\s\\S]*\\}");
@@ -98,6 +105,6 @@ public class HuggingFaceService {
             return objectMapper.readTree(matcher.group());
         }
 
-        throw new RuntimeException("No JSON found in response: " + content);
+        throw new RuntimeException("No JSON found in response content");
     }
 }
