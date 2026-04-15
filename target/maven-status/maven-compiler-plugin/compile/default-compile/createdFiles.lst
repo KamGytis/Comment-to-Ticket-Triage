@@ -1,3 +1,4 @@
+com\pulsedesk\config\CorsConfig.class
 com\pulsedesk\model\Ticket.class
 com\pulsedesk\dto\CommentRequest.class
 com\pulsedesk\controller\TicketController.class
