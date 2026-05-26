@@ -1,5 +1,5 @@
 # PulseDesk — Comment-to-Ticket Triage
-An AI-powered support ticket generator built for IBM's internship technical challenge.
+An AI-powered support ticket generator.
 PulseDesk collects user comments and automatically determines whether they should become
 support tickets using the Groq API.
 
